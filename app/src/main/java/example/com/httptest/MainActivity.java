@@ -1,7 +1,9 @@
 package example.com.httptest;
 
 import android.os.AsyncTask;
+import android.os.Build;
 import android.os.Bundle;
+import android.support.annotation.RequiresApi;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.view.View;
@@ -9,12 +11,17 @@ import android.widget.Button;
 import android.widget.EditText;
 import android.widget.TextView;
 
+import org.w3c.dom.Text;
+
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.net.DatagramSocket;
 import java.net.HttpURLConnection;
+import java.net.InetAddress;
 import java.net.MalformedURLException;
+import java.net.SocketException;
 import java.net.URL;
 import java.net.UnknownHostException;
 import java.util.HashMap;
@@ -22,17 +29,42 @@ import java.util.Map;
 
 public class MainActivity extends AppCompatActivity {
 
+    // Make some variables global
     TextView deviceList;
+    TextView textIP;
     Button btnScan;
     String urlString;
+
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+
+        // Assign the device list control
         deviceList = (TextView) findViewById(R.id.deviceList);
 
-
+        // Assign the Scan button
         btnScan = (Button) findViewById(R.id.buttonScan);
+
+        // Declare IP variable
+        String localIP = null;
+
+        // Get the current IP of this device
+        try {
+            localIP = new GetLocalIp().execute().get();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        // Set the IP text
+        textIP = (TextView) findViewById(R.id.textIP);
+        textIP.setText(localIP);
+
+        // Call the subnet scanner
+        new subnetDeviceScanner().scan(localIP);
+
+        // Scan button listener
         btnScan.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -43,6 +75,55 @@ public class MainActivity extends AppCompatActivity {
                 new FetchWeatherData().execute(urlString);
             }
         });
+    }
+
+    // Class to get the local IP address
+    public class GetLocalIp extends AsyncTask<String, Integer, String>
+    {
+        @RequiresApi(api = Build.VERSION_CODES.KITKAT)
+        @Override
+        protected String doInBackground(String... params)
+        {
+            // Declare ip variable
+            String ip = null;
+
+            // Get the local IP with a socket connection
+            try(final DatagramSocket socket = new DatagramSocket()){
+                try {
+                    socket.connect(InetAddress.getByName("8.8.8.8"), 10002);
+                } catch (UnknownHostException e) {
+                    e.printStackTrace();
+                }
+                ip = socket.getLocalAddress().getHostAddress();
+            } catch (SocketException e) {
+                e.printStackTrace();
+            }
+
+            return ip;
+        }
+    }
+
+    // Class to go through the subnet and check for devices
+    public class subnetDeviceScanner
+    {
+        protected String scan(String ip)
+        {
+            // Split up the IP address
+            String[] ipParts = ip.split("\\.");
+            int ipPartsLength = ipParts.length;
+
+            deviceList.setText("Array length:" + Integer.toString(ipPartsLength));
+//            deviceList.setText(ip);
+
+            // Build the first 3 octets of the subnet address
+            String ipFirstPart = null;
+//            String ipFirstPart = ipParts[0] + "." + ipParts[1] + "." + ipParts[2] + ".";
+//
+//            String currentList = deviceList.getText().toString();
+//            deviceList.setText(currentList + "\n" + ipFirstPart);
+
+            return null;
+        }
     }
 
 
