@@ -1,17 +1,17 @@
 package example.com.httptest;
 
+import android.content.Intent;
 import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Bundle;
 import android.support.annotation.RequiresApi;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
+import android.view.Gravity;
 import android.view.View;
 import android.widget.Button;
-import android.widget.EditText;
+import android.widget.LinearLayout;
 import android.widget.TextView;
-
-import org.w3c.dom.Text;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -24,16 +24,19 @@ import java.net.MalformedURLException;
 import java.net.SocketException;
 import java.net.URL;
 import java.net.UnknownHostException;
-import java.util.HashMap;
-import java.util.Map;
 
 public class MainActivity extends AppCompatActivity {
 
+    // Constant for browser intent
+    public static final String BROWSER_URL = "example.com.httptest.URL";
+
     // Make some variables global
-    TextView deviceList;
     TextView textIP;
     Button btnScan;
     String urlString;
+    String localIP = null;
+    LinearLayout deviceLL = null;
+    Boolean endScan = false;
 
 
     @Override
@@ -41,14 +44,11 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        // Assign the device list control
-        deviceList = (TextView) findViewById(R.id.deviceList);
+        // Assign the linear layout
+        deviceLL = (LinearLayout) findViewById(R.id.deviceListLinear);
 
         // Assign the Scan button
         btnScan = (Button) findViewById(R.id.buttonScan);
-
-        // Declare IP variable
-        String localIP = null;
 
         // Get the current IP of this device
         try {
@@ -68,11 +68,14 @@ public class MainActivity extends AppCompatActivity {
         btnScan.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                urlString = "http://api.ipify.org";
-                new FetchWeatherData().execute(urlString);
+                // Remove buttons from the previous scan
+                deviceLL.removeAllViews();
 
-                urlString = "http://api.ipify.com";
-                new FetchWeatherData().execute(urlString);
+                // Un-cancel the scan
+                endScan = false;
+
+                // Run the scan
+                new subnetDeviceScanner().scan(localIP);
             }
         });
     }
@@ -108,36 +111,60 @@ public class MainActivity extends AppCompatActivity {
     {
         protected String scan(String ip)
         {
+            // Set the button text
+            btnScan.setText("Scanning...");
+
             // Split up the IP address
             String[] ipParts = ip.split("\\.");
-            int ipPartsLength = ipParts.length;
-
-            deviceList.setText("Array length:" + Integer.toString(ipPartsLength));
-//            deviceList.setText(ip);
 
             // Build the first 3 octets of the subnet address
             String ipFirstPart = null;
-//            String ipFirstPart = ipParts[0] + "." + ipParts[1] + "." + ipParts[2] + ".";
-//
-//            String currentList = deviceList.getText().toString();
-//            deviceList.setText(currentList + "\n" + ipFirstPart);
+            ipFirstPart = ipParts[0] + "." + ipParts[1] + "." + ipParts[2];
+
+            // Set the current list variable
+            String currentList = null;
+
+            // Go through the subnet
+            for (int i = 0; i < 256; i++) {
+
+                // Stop scanning if a device is chosen
+                if (endScan)
+                    break;
+
+                // Convert i to string
+                String thisOctet = Integer.toString(i);
+
+                // Check if the page is available
+                if (!endScan)
+                    new checkPage().execute("http://" + ipFirstPart + "." + thisOctet + ":3001", ipFirstPart + "." + thisOctet, thisOctet);
+            }
 
             return null;
         }
     }
 
 
-    private class FetchWeatherData extends AsyncTask<String, Void, String> {
+    private class checkPage extends AsyncTask<String, Void, String[]> {
 
         @Override
-        protected String doInBackground(String... params) {
+        protected String[] doInBackground(String... params) {
+            // Make sure the scan hasn't been cancelled
+            if (endScan) {
+                String[] ret = {"FAIL", params[1]};
+                return ret;
+            }
+
+            // Change the button text if we're done
+            if (params[2] == "255")
+                btnScan.setText("Scan");
+
             // These two need to be declared outside the try/catch
             // so that they can be closed in the finally block.
             HttpURLConnection urlConnection = null;
             BufferedReader reader = null;
 
             // Will contain the raw JSON response as a string.
-            String forecastJsonStr = null;
+            String pageJsonStr = null;
             InputStream inputStream = null;
 
             try {
@@ -150,14 +177,17 @@ public class MainActivity extends AppCompatActivity {
 
                 try {
                     urlConnection.setRequestMethod("GET");
+                    urlConnection.setConnectTimeout(500);
                     urlConnection.connect();
 
                     // Read the input stream into a String
                     inputStream = urlConnection.getInputStream();
                 } catch (UnknownHostException e) {
-                    return "FAIL U " + goToUrl;
+                    String[] ret = {"FAIL", params[0]};
+                    return ret;
                 } catch (MalformedURLException e) {
-                    return "FAIL M " + goToUrl;
+                    String[] ret = {"FAIL", params[0]};
+                    return ret;
                 }
                 StringBuffer buffer = new StringBuffer();
                 if (inputStream == null) {
@@ -178,13 +208,13 @@ public class MainActivity extends AppCompatActivity {
                     // Stream was empty.  No point in parsing.
                     return null;
                 }
-                forecastJsonStr = buffer.toString();
-                return forecastJsonStr;
+                pageJsonStr = buffer.toString();
+                String[] ret = {params[1], pageJsonStr};
+                return ret;
             } catch (IOException e) {
                 Log.e("INFO", "Error ", e);
-                // If the code didn't successfully get the weather data, there's no point in attemping
-                // to parse it.
-                return null;
+                String[] ret = {"FAIL", params[1]};
+                return ret;
             } finally{
                 if (urlConnection != null) {
                     urlConnection.disconnect();
@@ -200,11 +230,39 @@ public class MainActivity extends AppCompatActivity {
         }
 
         @Override
-        protected void onPostExecute(String s) {
+        protected void onPostExecute(final String[] s) {
             super.onPostExecute(s);
-            String currentList = deviceList.getText().toString();
-            deviceList.setText(currentList + "\n" + s);
-            Log.i("json", s);
+            Log.i("json", s[0]);
+
+            // Add a button to the linear layout
+            if (s[0] != "FAIL") {
+                Button btn = new Button(MainActivity.this);
+                btn.setLayoutParams(new LinearLayout.LayoutParams(
+                        LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT));
+                btn.setGravity(Gravity.CENTER | Gravity.RIGHT);
+                btn.setText(s[1]);
+
+                // Set the button listener
+                btn.setOnClickListener(new Button.OnClickListener() {
+                    public void onClick(View v) {
+                        //Stop scanning
+                        endScan = true;
+
+                        // Get the URL
+                        Button b = (Button) v;
+                        //String url = b.getText().toString();
+                        String url = s[0];
+
+                        // Open the browser
+                        Intent intent = new Intent(MainActivity.this, DeviceBrowser.class);
+                        intent.putExtra(BROWSER_URL, url);
+                        startActivity(intent);
+
+                    }
+                });
+                deviceLL.addView(btn);
+            }
+
         }
     }
 }
