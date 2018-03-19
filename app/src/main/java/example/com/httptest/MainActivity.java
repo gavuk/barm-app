@@ -136,7 +136,7 @@ public class MainActivity extends AppCompatActivity {
 
                 // Check if the page is available
                 if (!endScan)
-                    new checkPage().execute("http://" + ipFirstPart + "." + thisOctet + ":3001", ipFirstPart + "." + thisOctet, thisOctet);
+                    new checkPage().execute("http://" + ipFirstPart + "." + thisOctet + ":5001", ipFirstPart + "." + thisOctet, thisOctet);
             }
 
             return null;
