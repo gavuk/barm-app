@@ -13,6 +13,9 @@ import android.widget.Button;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 
+import org.json.JSONException;
+import org.json.JSONObject;
+
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
@@ -236,11 +239,38 @@ public class MainActivity extends AppCompatActivity {
 
             // Add a button to the linear layout
             if (s[0] != "FAIL") {
+                // Get items from JSON object
+                // Define the vars
+                JSONObject jObject = null;
+                String jName = null;
+                int iPort = 0;
+
+                // Parse the JSON
+                try {
+                    jObject = new JSONObject(s[1]);
+                } catch (JSONException e) {
+                    e.printStackTrace();
+                }
+                try {
+                    jName = jObject.getString("name");
+                } catch (JSONException e) {
+                    e.printStackTrace();
+                }
+                try {
+                    iPort = jObject.getInt("port");
+                } catch (JSONException e) {
+                    e.printStackTrace();
+                }
+
+                // Convert port number to a string
+                final String jPort = Integer.toString(iPort);
+
+                // Create the button
                 Button btn = new Button(MainActivity.this);
                 btn.setLayoutParams(new LinearLayout.LayoutParams(
                         LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT));
                 btn.setGravity(Gravity.CENTER | Gravity.RIGHT);
-                btn.setText(s[1]);
+                btn.setText(jName);
 
                 // Set the button listener
                 btn.setOnClickListener(new Button.OnClickListener() {
@@ -255,7 +285,7 @@ public class MainActivity extends AppCompatActivity {
 
                         // Open the browser
                         Intent intent = new Intent(MainActivity.this, DeviceBrowser.class);
-                        intent.putExtra(BROWSER_URL, url);
+                        intent.putExtra(BROWSER_URL, url + ":" + jPort);
                         startActivity(intent);
 
                     }

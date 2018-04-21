@@ -33,6 +33,6 @@ public class DeviceBrowser extends AppCompatActivity {
         webView.setHorizontalScrollBarEnabled(false);
 
         // Load the page
-        webView.loadUrl("http://" + url + ":3000");
+        webView.loadUrl("http://" + url);
     }
 }
