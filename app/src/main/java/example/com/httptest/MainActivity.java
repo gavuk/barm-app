@@ -112,7 +112,7 @@ public class MainActivity extends AppCompatActivity {
         protected String scan(String ip)
         {
             // Set the button text
-            btnScan.setText("Scanning...");
+            btnScan.setText(getString(R.string.button_scanning));
 
             // Split up the IP address
             String[] ipParts = ip.split("\\.");

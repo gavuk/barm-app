@@ -2,4 +2,5 @@
     <string name="app_name" translatable="false">Bar Machina</string>
     <string name="button_scan">Scan</string>
     <string name="text_scaninstr">Make sure that you are connected to the same wifi network as the Bar Machina device. If the device has not been previously configured it will start its own access point, which you need to connect to.</string>
+    <string name="button_scanning">Scanning...</string>
 </resources>
