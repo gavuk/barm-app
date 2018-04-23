@@ -4,4 +4,5 @@
     <string name="text_scaninstr">Sørg for, at du er forbundet til det samme wifi-netværk som Bar Machina-enheden. Hvis enheden ikke er konfigureret tidligere, starter den et eget adgangspunkt, som du skal oprette forbindelse til.</string>
     <string name="button_scan">Scanne</string>
     <string name="button_scanning">Scanner...</string>
+    <string name="your_ip">Din IP:</string>
 </resources>
