@@ -30,8 +30,9 @@ import java.net.UnknownHostException;
 
 public class MainActivity extends AppCompatActivity {
 
-    // Constant for browser intent
+    // Constants for browser intent
     public static final String BROWSER_URL = "example.com.httptest.URL";
+    public static final String BROWSER_PORT = "example.com.httptest.PORT";
 
     // Make some variables global
     TextView textIP;
@@ -175,7 +176,7 @@ public class MainActivity extends AppCompatActivity {
                 String goToUrl = params[0];
                 URL url = new URL(goToUrl);
 
-                // Create the request to OpenWeatherMap, and open the connection
+                // Create the request and open the connection
                 urlConnection = (HttpURLConnection) url.openConnection();
 
                 try {
@@ -285,7 +286,8 @@ public class MainActivity extends AppCompatActivity {
 
                         // Open the browser
                         Intent intent = new Intent(MainActivity.this, DeviceBrowser.class);
-                        intent.putExtra(BROWSER_URL, url + ":" + jPort);
+                        intent.putExtra(BROWSER_URL, url);
+                        intent.putExtra(BROWSER_PORT, jPort);
                         startActivity(intent);
 
                     }
